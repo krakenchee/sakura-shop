@@ -1,0 +1,48 @@
+User-agent: *
+
+Allow: /
+
+Disallow: /admin/
+Disallow: /api/
+Disallow: /assets/uploads/  
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /account.php
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /logout.php
+Disallow: /config.php
+Disallow: /footer.php
+Disallow: /header.php
+Disallow: /product_card.php
+Disallow: /sakura_shop.sql
+
+Disallow: /*?sort=
+Disallow: /*?page=
+
+
+User-agent: Yandex
+Disallow: /admin/
+Disallow: /api/
+Disallow: /assets/uploads/
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /account.php
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /logout.php
+Allow: /
+
+User-agent: Googlebot
+Disallow: /admin/
+Disallow: /api/
+Disallow: /assets/uploads/
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /account.php
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /logout.php
+Allow: /
+
+Sitemap: https://yourdomain.com/sitemap.xml
