@@ -110,7 +110,7 @@ include 'header.php';
 <section class="section">
   <div class="container">
     <div class="section-ornament"><span>カテゴリー</span></div>
-    <h2 class="section-title">Категории товаров</h2>
+    <h2 class="section-title">Категорииsdsd товаров</h2>
     <p class="section-subtitle">Откройте для себя мир японской культуры</p>
 
     <div class="categories-grid">
