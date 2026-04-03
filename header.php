@@ -26,6 +26,7 @@ $user = currentUser();
   <meta name="description" content="<?= htmlspecialchars($pageDescription) ?>">
   <meta name="keywords" content="<?= htmlspecialchars($pageKeywords) ?>">
   <link rel="canonical" href="<?= htmlspecialchars($canonical) ?>">
+  <meta name="robots" content="noindex, nofollow">
    <!-- Open Graph / Социальные сети -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="<?= htmlspecialchars($canonical) ?>">
