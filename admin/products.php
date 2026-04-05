@@ -2,9 +2,8 @@
 require_once '../config.php';
 requireAdmin();
 
-// Функция для генерации slug без intl
+// Функция для генерации slug
 function generateSlug($string) {
-    // Преобразуем кириллицу в латиницу
     $cyrillic = array(
         'а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п',
         'р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я',
@@ -19,27 +18,13 @@ function generateSlug($string) {
     );
     
     $string = str_replace($cyrillic, $latin, $string);
-    
-    // Убираем всё, кроме букв, цифр и пробелов
     $string = preg_replace('/[^a-z0-9\s-]/i', '', $string);
-    
-    // Заменяем пробелы и подчеркивания на дефисы
     $string = preg_replace('/[\s_]+/', '-', $string);
-    
-    // Убираем повторяющиеся дефисы
     $string = preg_replace('/-+/', '-', $string);
-    
-    // Приводим к нижнему регистру
     $string = strtolower($string);
-    
-    // Убираем дефисы в начале и конце
     $string = trim($string, '-');
     
-    // Если получилась пустая строка, используем 'product'
-    if (empty($string)) {
-        $string = 'product';
-    }
-    
+    if (empty($string)) $string = 'product';
     return $string;
 }
 
@@ -47,7 +32,7 @@ $db = getDB();
 $msg = '';
 $error = '';
 
-// Получаем подкатегории с группировкой по основным категориям
+// Получаем подкатегории
 $subcategories = $db->query("
     SELECT c.id, c.name, mc.name as main_cat_name, mc.id as main_cat_id
     FROM categories c
@@ -69,6 +54,17 @@ if (isset($_GET['delete'])) {
     verifyCsrf();
     $id = (int)$_GET['delete'];
     
+    // Получаем путь к изображению перед удалением
+    $st = $db->prepare("SELECT pi.image_path FROM products p LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1 WHERE p.id = ?");
+    $st->execute([$id]);
+    $image = $st->fetch();
+    
+    // Удаляем файл с диска
+    if ($image && $image['image_path']) {
+        $filePath = dirname(__DIR__) . '/' . $image['image_path'];
+        if (file_exists($filePath)) unlink($filePath);
+    }
+    
     $st = $db->prepare("SELECT name FROM products WHERE id = ?");
     $st->execute([$id]);
     $productName = $st->fetchColumn();
@@ -76,8 +72,6 @@ if (isset($_GET['delete'])) {
     if ($productName) {
         $db->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
         $msg = 'Товар "' . htmlspecialchars($productName) . '" удален';
-    } else {
-        $msg = 'Товар не найден';
     }
     
     header('Location: products.php?msg=' . urlencode($msg));
@@ -95,20 +89,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_product'])) {
     $price       = (float)$_POST['price'];
     $oldPrice    = $_POST['old_price'] ? (float)$_POST['old_price'] : null;
     $stock       = (int)$_POST['stock_quantity'];
+    $imagePath   = trim($_POST['image_path'] ?? '');
 
     if (!$name || !$categoryId || $price <= 0) {
         $error = 'Заполните обязательные поля';
     } else {
         if ($id) {
+            // Обновление товара
             $db->prepare("UPDATE products SET category_id=?, name=?, slug=?, description=?, price=?, old_price=?, stock_quantity=? WHERE id=?")
                ->execute([$categoryId, $name, $slug, $description, $price, $oldPrice, $stock, $id]);
+            
+            // Обновляем изображение если загружено новое
+            if ($imagePath) {
+                // Удаляем старое изображение
+                $st = $db->prepare("SELECT image_path FROM product_images WHERE product_id = ? AND is_main = 1");
+                $st->execute([$id]);
+                $oldImage = $st->fetch();
+                if ($oldImage && $oldImage['image_path']) {
+                    $oldFilePath = dirname(__DIR__) . '/' . $oldImage['image_path'];
+                    if (file_exists($oldFilePath)) unlink($oldFilePath);
+                }
+                
+                // Обновляем или вставляем новое
+                $st = $db->prepare("SELECT id FROM product_images WHERE product_id = ? AND is_main = 1");
+                $st->execute([$id]);
+                if ($st->fetch()) {
+                    $db->prepare("UPDATE product_images SET image_path = ? WHERE product_id = ? AND is_main = 1")->execute([$imagePath, $id]);
+                } else {
+                    $db->prepare("INSERT INTO product_images (product_id, image_path, is_main) VALUES (?,?,1)")->execute([$id, $imagePath]);
+                }
+            }
+            
             $msg = 'Товар обновлён';
         } else {
+            // Добавление нового товара
             $db->prepare("INSERT INTO products (category_id, name, slug, description, price, old_price, stock_quantity) VALUES (?,?,?,?,?,?,?)")
                ->execute([$categoryId, $name, $slug, $description, $price, $oldPrice, $stock]);
             $newId = $db->lastInsertId();
 
-            $imagePath = trim($_POST['image_path'] ?? '');
             if ($imagePath) {
                 $db->prepare("INSERT INTO product_images (product_id, image_path, is_main) VALUES (?,?,1)")->execute([$newId, $imagePath]);
             }
@@ -120,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_product'])) {
     }
 }
 
-// Сохранение характеристик
+// Сохранение характеристик (оставляем)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_features'])) {
     verifyCsrf();
     $productId = (int)$_POST['product_id'];
@@ -140,12 +158,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_features'])) {
 
 // Редактируемый товар
 $editProduct = null;
-$productFeatures = [];
+$productImage = null;
 if (isset($_GET['edit'])) {
     $st = $db->prepare("SELECT * FROM products WHERE id = ?");
     $st->execute([$_GET['edit']]);
     $editProduct = $st->fetch();
     if ($editProduct) {
+        $st = $db->prepare("SELECT * FROM product_images WHERE product_id = ? AND is_main = 1");
+        $st->execute([$editProduct['id']]);
+        $productImage = $st->fetch();
+        
         $st = $db->prepare("SELECT * FROM product_features WHERE product_id = ?");
         $st->execute([$editProduct['id']]);
         $productFeatures = $st->fetchAll();
@@ -154,9 +176,10 @@ if (isset($_GET['edit'])) {
 
 if (isset($_GET['msg'])) $msg = $_GET['msg'];
 
-// Список товаров с автоматическими статусами
+// Список товаров
 $products = $db->query("
-    SELECT p.*, c.name as cat_name
+    SELECT p.*, c.name as cat_name,
+           (SELECT image_path FROM product_images WHERE product_id = p.id AND is_main = 1 LIMIT 1) as image_path
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
     ORDER BY p.created_at DESC
@@ -269,14 +292,33 @@ include 'admin_header.php';
                     <textarea class="admin-form-textarea" name="description" rows="4"><?= htmlspecialchars($editProduct['description'] ?? '') ?></textarea>
                 </div>
 
-                <?php if (!$editProduct): ?>
+                <!-- ЗАГРУЗЧИК ИЗОБРАЖЕНИЙ (одно фото) -->
                 <div class="admin-form-group">
-                    <label class="admin-form-label">URL главного изображения</label>
-                    <input type="text" class="admin-form-input" name="image_path" placeholder="assets/uploads/products/product.jpg">
+                    <label class="admin-form-label">
+                        <?= $editProduct ? 'Изменить изображение' : 'Изображение товара *' ?>
+                    </label>
+                    <div class="image-uploader" data-type="product">
+                        <div class="upload-area" onclick="document.getElementById('productImageInput').click()">
+                            <input type="file" id="productImageInput" accept="image/*" style="display:none">
+                            <div class="upload-placeholder" <?= ($editProduct && $productImage) ? 'style="display:none"' : '' ?>>
+                                <span class="upload-icon">📸</span>
+                                <p>Нажмите для загрузки изображения</p>
+                                <small>JPG, PNG, WEBP до 5MB</small>
+                            </div>
+                            <div class="upload-preview" <?= ($editProduct && $productImage) ? '' : 'style="display:none"' ?>>
+                                <img src="<?= ($editProduct && $productImage) ? BASE_URL . $productImage['image_path'] : '' ?>" alt="Preview">
+                                <button type="button" class="remove-image-btn">✕</button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="image_path" id="imagePathInput" value="<?= htmlspecialchars($productImage['image_path'] ?? '') ?>">
+                        <div class="upload-progress" style="display:none">
+                            <div class="progress-bar"></div>
+                            <span>Загрузка...</span>
+                        </div>
+                    </div>
                 </div>
-                <?php endif; ?>
 
-                <!-- Автоматические статусы (только для просмотра) -->
+                <!-- Автоматические статусы -->
                 <?php if ($editProduct): ?>
                 <div class="admin-form-group">
                     <label class="admin-form-label">Статусы (автоматические)</label>
@@ -287,9 +329,7 @@ include 'admin_header.php';
                             <span class="status-hint">(до <?= date('d.m.Y', strtotime($editProduct['created_at'] . ' +30 days')) ?>)</span>
                         </div>
                         <?php else: ?>
-                        <div class="status-badge-auto status-normal">
-                            📅 Не новинка
-                        </div>
+                        <div class="status-badge-auto status-normal">📅 Не новинка</div>
                         <?php endif; ?>
                         
                         <?php if ($editProduct['is_popular']): ?>
@@ -306,10 +346,6 @@ include 'admin_header.php';
                         </div>
                         <?php endif; ?>
                     </div>
-                    <div class="admin-form-help">
-                        <small>⭐ Новинка: автоматически для товаров младше 30 дней</small><br>
-                        <small>🔥 Хит: автоматически при 10+ заказов за последние 30 дней</small>
-                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -323,6 +359,41 @@ include 'admin_header.php';
                 </div>
             </form>
         </div>
+
+        <!-- Характеристики товара (если редактируем) -->
+        <?php if ($editProduct): ?>
+        <div class="admin-form-card" style="margin-top: 30px;">
+            <h2 class="admin-form-title">Характеристики товара</h2>
+            
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                <input type="hidden" name="save_features" value="1">
+                <input type="hidden" name="product_id" value="<?= $editProduct['id'] ?>">
+                
+                <div id="features-container">
+                    <?php if (empty($productFeatures)): ?>
+                    <div class="feature-row">
+                        <input type="text" class="admin-form-input" name="feature_name[]" placeholder="Название (например: Состав)" style="width: 30%;">
+                        <input type="text" class="admin-form-input" name="feature_value[]" placeholder="Значение (например: Рис, сахар)" style="width: 65%;">
+                    </div>
+                    <?php else: ?>
+                        <?php foreach ($productFeatures as $f): ?>
+                        <div class="feature-row">
+                            <input type="text" class="admin-form-input" name="feature_name[]" value="<?= htmlspecialchars($f['feature_name']) ?>" style="width: 30%;">
+                            <input type="text" class="admin-form-input" name="feature_value[]" value="<?= htmlspecialchars($f['feature_value']) ?>" style="width: 65%;">
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                
+                <button type="button" id="add-feature-btn" class="btn btn-secondary btn-sm" style="margin: 10px 0;">+ Добавить характеристику</button>
+                
+                <div>
+                    <button type="submit" class="btn btn-primary">Сохранить характеристики</button>
+                </div>
+            </form>
+        </div>
+        <?php endif; ?>
 
         <!-- Список товаров -->
         <div class="admin-card">
@@ -339,6 +410,7 @@ include 'admin_header.php';
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Фото</th>
                             <th>Название</th>
                             <th>Категория</th>
                             <th>Цена</th>
@@ -350,20 +422,23 @@ include 'admin_header.php';
                             <?php foreach ($products as $p): ?>
                             <tr>
                                 <td><?= $p['id'] ?> </td>
+                                <td class="product-thumb">
+                                    <?php if ($p['image_path']): ?>
+                                    <img src="<?= BASE_URL . $p['image_path'] ?>" alt="" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                    <?php else: ?>
+                                    <div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🌸</div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($p['name']) ?> </td>
                                 <td class="admin-text-small"><?= htmlspecialchars($p['cat_name'] ?? '—') ?> </td>
                                 <td><?= number_format($p['price'], 0, ',', ' ') ?> ₽</td>
                                 <td><?= $p['stock_quantity'] ?> </td>
                                 <td>
                                     <?php if ($p['is_new']): ?>
-                                    <span class="badge badge-new" title="Добавлен: <?= date('d.m.Y', strtotime($p['created_at'])) ?>">
-                                        ✨ NEW
-                                    </span>
+                                    <span class="badge badge-new">✨ NEW</span>
                                     <?php endif; ?>
                                     <?php if ($p['is_popular']): ?>
-                                    <span class="badge badge-popular" title="<?= $p['order_count_30d'] ?> заказов за 30 дней">
-                                        🔥 HIT (<?= $p['order_count_30d'] ?>)
-                                    </span>
+                                    <span class="badge badge-popular">🔥 HIT</span>
                                     <?php endif; ?>
                                     <?php if (!$p['is_new'] && !$p['is_popular']): ?>
                                     <span class="badge badge-light">—</span>
@@ -375,7 +450,7 @@ include 'admin_header.php';
                                         <a href="../product.php?slug=<?= urlencode($p['slug']) ?>" target="_blank" class="admin-btn-action admin-btn-edit">Просмотр</a>
                                         <a href="products.php?delete=<?= $p['id'] ?>&csrf_token=<?= csrfToken() ?>"
                                            class="admin-btn-action admin-btn-delete"
-                                           onclick="return confirm('Удалить товар «<?= htmlspecialchars($p['name']) ?>»?\n\nИнформация о товаре сохранится в завершенных заказах.')">
+                                           onclick="return confirm('Удалить товар «<?= htmlspecialchars($p['name']) ?>»?')">
                                            Удалить
                                         </a>
                                     </div>
@@ -385,7 +460,7 @@ include 'admin_header.php';
                             
                             <?php if (empty($products)): ?>
                              <tr>
-                                <td colspan="7" class="empty-table">
+                                <td colspan="8" class="empty-table">
                                     <div class="empty-state">
                                         <span class="empty-icon">🛍</span>
                                         <p>Товаров не найдено</p>
@@ -421,53 +496,131 @@ include 'admin_header.php';
         font-size: 13px;
         font-weight: 500;
     }
-    .status-badge-auto.status-new {
-        background: #e8f5e9;
-        color: #2e7d32;
+    .status-badge-auto.status-new { background: #e8f5e9; color: #2e7d32; }
+    .status-badge-auto.status-hit { background: #fff3e0; color: #f57c00; }
+    .status-badge-auto.status-normal { background: #f5f5f5; color: #757575; }
+    .status-hint { font-size: 11px; font-weight: normal; opacity: 0.7; }
+    
+    .image-uploader { margin-top: 8px; }
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
     }
-    .status-badge-auto.status-hit {
-        background: #fff3e0;
-        color: #f57c00;
+    .upload-area:hover { border-color: #c62828; background: rgba(198, 40, 40, 0.05); }
+    .upload-placeholder .upload-icon { font-size: 48px; display: block; margin-bottom: 10px; }
+    .upload-preview { position: relative; display: inline-block; }
+    .upload-preview img { max-width: 200px; max-height: 200px; border-radius: 8px; }
+    .remove-image-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #c62828;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    .status-badge-auto.status-normal {
-        background: #f5f5f5;
-        color: #757575;
+    .upload-progress { margin-top: 10px; }
+    .progress-bar {
+        height: 4px;
+        background: #c62828;
+        width: 0%;
+        transition: width 0.3s;
+        animation: progress 2s infinite;
     }
-    .status-hint {
-        font-size: 11px;
-        font-weight: normal;
-        opacity: 0.7;
+    @keyframes progress {
+        0% { width: 0%; }
+        50% { width: 100%; }
+        100% { width: 0%; }
     }
-    .badge-new {
-        background: #e8f5e9;
-        color: #2e7d32;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        display: inline-block;
+    
+    .feature-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
     }
-    .badge-popular {
-        background: #fff3e0;
-        color: #f57c00;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        display: inline-block;
-    }
-    .badge-light {
-        background: #f5f5f5;
-        color: #9e9e9e;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-    }
-    .admin-form-help {
-        font-size: 12px;
-        color: #6c757d;
-        margin-top: 8px;
-    }
+    .product-thumb img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
     </style>
 
-    <?php include 'admin_footer.php'; ?>
+    <script>
+    // Загрузка изображения
+    const fileInput = document.getElementById('productImageInput');
+    const uploadArea = document.querySelector('.upload-area');
+    const placeholder = document.querySelector('.upload-placeholder');
+    const preview = document.querySelector('.upload-preview');
+    const previewImg = preview?.querySelector('img');
+    const hiddenInput = document.getElementById('imagePathInput');
+    const removeBtn = document.querySelector('.remove-image-btn');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'product');
+            
+            const progressDiv = document.querySelector('.upload-progress');
+            if (progressDiv) progressDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch('upload_handler.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (previewImg) previewImg.src = result.url;
+                    if (placeholder) placeholder.style.display = 'none';
+                    if (preview) preview.style.display = 'block';
+                    if (hiddenInput) hiddenInput.value = result.path;
+                    
+                    if (removeBtn) {
+                        removeBtn.onclick = () => {
+                            if (placeholder) placeholder.style.display = 'block';
+                            if (preview) preview.style.display = 'none';
+                            if (hiddenInput) hiddenInput.value = '';
+                            fileInput.value = '';
+                        };
+                    }
+                } else {
+                    alert('Ошибка: ' + result.error);
+                }
+            } catch (error) {
+                alert('Ошибка загрузки: ' + error.message);
+            } finally {
+                if (progressDiv) progressDiv.style.display = 'none';
+            }
+        });
+    }
+    
+    // Добавление характеристик
+    const addFeatureBtn = document.getElementById('add-feature-btn');
+    if (addFeatureBtn) {
+        addFeatureBtn.addEventListener('click', function() {
+            const container = document.getElementById('features-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'feature-row';
+            newRow.innerHTML = `
+                <input type="text" class="admin-form-input" name="feature_name[]" placeholder="Название" style="width: 30%;">
+                <input type="text" class="admin-form-input" name="feature_value[]" placeholder="Значение" style="width: 65%;">
+            `;
+            container.appendChild(newRow);
+        });
+    }
+    </script>
+
+<?php include 'admin_footer.php'; ?>
