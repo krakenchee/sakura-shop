@@ -553,74 +553,152 @@ include 'admin_header.php';
     </style>
 
     <script>
-    // Загрузка изображения
-    const fileInput = document.getElementById('productImageInput');
-    const uploadArea = document.querySelector('.upload-area');
-    const placeholder = document.querySelector('.upload-placeholder');
-    const preview = document.querySelector('.upload-preview');
-    const previewImg = preview?.querySelector('img');
-    const hiddenInput = document.getElementById('imagePathInput');
-    const removeBtn = document.querySelector('.remove-image-btn');
-    
-    if (fileInput) {
-        fileInput.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+// Загрузка одного изображения
+const fileInput = document.getElementById('productImageInput');
+const uploadArea = document.querySelector('.upload-area');
+const placeholder = document.querySelector('.upload-placeholder');
+const preview = document.querySelector('.upload-preview');
+const previewImg = preview?.querySelector('img');
+const hiddenInput = document.getElementById('imagePathInput');
+const removeBtn = document.querySelector('.remove-image-btn');
+
+if (fileInput) {
+    fileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'product');
+        
+        const progressDiv = document.querySelector('.upload-progress');
+        if (progressDiv) progressDiv.style.display = 'block';
+        
+        try {
+            const response = await fetch('upload_handler.php', {
+                method: 'POST',
+                body: formData
+            });
             
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('type', 'product');
+            const result = await response.json();
             
-            const progressDiv = document.querySelector('.upload-progress');
-            if (progressDiv) progressDiv.style.display = 'block';
-            
-            try {
-                const response = await fetch('upload_handler.php', {
-                    method: 'POST',
-                    body: formData
-                });
+            if (result.success) {
+                if (previewImg) previewImg.src = result.url;
+                if (placeholder) placeholder.style.display = 'none';
+                if (preview) preview.style.display = 'block';
+                if (hiddenInput) hiddenInput.value = result.path;
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    if (previewImg) previewImg.src = result.url;
-                    if (placeholder) placeholder.style.display = 'none';
-                    if (preview) preview.style.display = 'block';
-                    if (hiddenInput) hiddenInput.value = result.path;
-                    
-                    if (removeBtn) {
-                        removeBtn.onclick = () => {
-                            if (placeholder) placeholder.style.display = 'block';
-                            if (preview) preview.style.display = 'none';
-                            if (hiddenInput) hiddenInput.value = '';
-                            fileInput.value = '';
-                        };
-                    }
-                } else {
-                    alert('Ошибка: ' + result.error);
+                if (removeBtn) {
+                    removeBtn.onclick = () => {
+                        if (placeholder) placeholder.style.display = 'block';
+                        if (preview) preview.style.display = 'none';
+                        if (hiddenInput) hiddenInput.value = '';
+                        fileInput.value = '';
+                    };
                 }
-            } catch (error) {
-                alert('Ошибка загрузки: ' + error.message);
-            } finally {
-                if (progressDiv) progressDiv.style.display = 'none';
+            } else {
+                alert('Ошибка: ' + result.error);
             }
-        });
-    }
-    
-    // Добавление характеристик
-    const addFeatureBtn = document.getElementById('add-feature-btn');
-    if (addFeatureBtn) {
-        addFeatureBtn.addEventListener('click', function() {
-            const container = document.getElementById('features-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'feature-row';
-            newRow.innerHTML = `
-                <input type="text" class="admin-form-input" name="feature_name[]" placeholder="Название" style="width: 30%;">
-                <input type="text" class="admin-form-input" name="feature_value[]" placeholder="Значение" style="width: 65%;">
-            `;
-            container.appendChild(newRow);
-        });
-    }
-    </script>
+        } catch (error) {
+            alert('Ошибка загрузки: ' + error.message);
+        } finally {
+            if (progressDiv) progressDiv.style.display = 'none';
+        }
+    });
+}
+
+// Добавление характеристик (если нужно)
+const addFeatureBtn = document.getElementById('add-feature-btn');
+if (addFeatureBtn) {
+    addFeatureBtn.addEventListener('click', function() {
+        const container = document.getElementById('features-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'feature-row';
+        newRow.innerHTML = `
+            <input type="text" class="admin-form-input" name="feature_name[]" placeholder="Название" style="width: 30%;">
+            <input type="text" class="admin-form-input" name="feature_value[]" placeholder="Значение" style="width: 65%;">
+        `;
+        container.appendChild(newRow);
+    });
+}
+</script>
+
+<style>
+.image-uploader {
+    margin-top: 8px;
+}
+
+.upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-area:hover {
+    border-color: #c62828;
+    background: rgba(198, 40, 40, 0.05);
+}
+
+.upload-placeholder .upload-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.upload-preview {
+    position: relative;
+    display: inline-block;
+}
+
+.upload-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-progress {
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 4px;
+    background: #c62828;
+    width: 0%;
+    transition: width 0.3s;
+    animation: progress 2s infinite;
+}
+
+@keyframes progress {
+    0% { width: 0%; }
+    50% { width: 100%; }
+    100% { width: 0%; }
+}
+
+.feature-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+</style>
 
 <?php include 'admin_footer.php'; ?>
