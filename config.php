@@ -3,6 +3,15 @@
 // Конфигурация подключения к базе данных
 // Измените параметры под ваш хостинг/сервер
 // ============================================================
+ // Отключаем запросы доступа к другим приложениям
+header("X-Frame-Options: SAMEORIGIN");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
+// Убираем ненужные заголовки
+if (function_exists('header_remove')) {
+    header_remove('X-Powered-By');
+}
 
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');          // ваш пользователь MySQL
