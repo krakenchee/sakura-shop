@@ -102,27 +102,21 @@ include 'header.php';
   <!-- Основная секция (остается без изменений) -->
   <div class="product-page-layout">
     <!-- Галерея -->
+    <!-- ГАЛЕРЕЯ (только одно фото) -->
     <div class="product-gallery">
-      <div class="gallery-main">
-        <?php if ($images): ?>
-        <img id="mainProductImg"
-             src="<?= htmlspecialchars($images[0]['image_path']) ?>"
-             alt="<?= htmlspecialchars($product['name']) ?>">
-        <?php else: ?>
-        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5rem;background:var(--ivory-dark);">🌸</div>
-        <?php endif; ?>
-      </div>
-      <?php if (count($images) > 1): ?>
-      <div class="gallery-thumbs">
-        <?php foreach ($images as $i => $img): ?>
-        <div class="gallery-thumb <?= $i === 0 ? 'active' : '' ?>">
-          <img src="<?= htmlspecialchars($img['image_path']) ?>" alt="">
+        <div class="gallery-main">
+            <?php if ($images && count($images) > 0): ?>
+            <img src="<?= BASE_URL . $images[0]['image_path'] ?>"
+                 alt="<?= htmlspecialchars($product['name']) ?>"
+                 class="product-main-image">
+            <?php else: ?>
+            <div class="no-image-placeholder">
+                <span>🌸</span>
+                <p>Изображение отсутствует</p>
+            </div>
+            <?php endif; ?>
         </div>
-        <?php endforeach; ?>
-      </div>
-      <?php endif; ?>
     </div>
-
     <!-- Информация -->
     <div class="product-info">
       <div class="product-badges" style="position:static;flex-direction:row;margin-bottom:12px;">
