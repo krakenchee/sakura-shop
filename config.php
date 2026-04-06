@@ -39,7 +39,7 @@ function getDB(): PDO {
 }
 
 // Базовый URL сайта
-define('BASE_URL', '/');
+define('BASE_URL', 'http://localhost/japan/');
 define('SITE_NAME', 'Sakura Shop');
 
 // Ограничения сессии
