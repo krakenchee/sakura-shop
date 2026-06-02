@@ -462,10 +462,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `email`, `phone`, `password_hash`, `full_name`, `role`, `created_at`) VALUES
 (1, 'admin@sakura-shop.ru', '+7 (999) 000-00-00', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Администратор Сайта', 'admin', '2026-02-24 10:11:42'),
-(2, 'user@example.com', '+7 (999) 111-22-33', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Мария Иванова', 'client', '2026-02-24 10:11:42'),
-(3, 'karina@inbox.ru', '+7 (123) 456-78-90', '$2y$10$5bSX1lnh5RXZfpXPRNrLfO6WwD/hkUn4KannJmye44QEjOs.jLrpS', 'Карина', 'client', '2026-02-24 13:00:31'),
-(4, 'dcscv@s.f', '+7 (233) 333-33-33', '$2y$10$Z96umo4QVEGFKyPUmyejc.RtsJ6TgIbzp6421mGLfjnx180YG2/Pi', 'яы', 'client', '2026-02-28 12:15:36'),
-(5, 'acef@sf.d', '+7 (233) 333-33-33', '$2y$10$KgXCpy7/rGWQ3kCjIl0qYeHfphhrMDQMFGIxkOAEsW6mH09OKAZOW', '222', 'client', '2026-02-28 12:17:11');
+(3, 'karina@inbox.ru', '+7 (123) 456-78-90', '$2y$10$5bSX1lnh5RXZfpXPRNrLfO6WwD/hkUn4KannJmye44QEjOs.jLrpS', 'Карина', 'client', '2026-02-24 13:00:31');
 
 --
 -- Индексы сохранённых таблиц

@@ -99,26 +99,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_product'])) {
             $db->prepare("UPDATE products SET category_id=?, name=?, slug=?, description=?, price=?, old_price=?, stock_quantity=? WHERE id=?")
                ->execute([$categoryId, $name, $slug, $description, $price, $oldPrice, $stock, $id]);
             
-            // Обновляем изображение если загружено новое
-            if ($imagePath) {
-                // Удаляем старое изображение
-                $st = $db->prepare("SELECT image_path FROM product_images WHERE product_id = ? AND is_main = 1");
-                $st->execute([$id]);
-                $oldImage = $st->fetch();
-                if ($oldImage && $oldImage['image_path']) {
-                    $oldFilePath = dirname(__DIR__) . '/' . $oldImage['image_path'];
-                    if (file_exists($oldFilePath)) unlink($oldFilePath);
-                }
-                
-                // Обновляем или вставляем новое
-                $st = $db->prepare("SELECT id FROM product_images WHERE product_id = ? AND is_main = 1");
-                $st->execute([$id]);
-                if ($st->fetch()) {
-                    $db->prepare("UPDATE product_images SET image_path = ? WHERE product_id = ? AND is_main = 1")->execute([$imagePath, $id]);
-                } else {
-                    $db->prepare("INSERT INTO product_images (product_id, image_path, is_main) VALUES (?,?,1)")->execute([$id, $imagePath]);
-                }
-            }
+            // Обновляем изображение ТОЛЬКО если загружено новое
+    	    if (!empty($imagePath)) {
+	        // Получаем текущее изображение
+	        $st = $db->prepare("SELECT image_path FROM product_images WHERE product_id = ? AND is_main = 1");
+	        $st->execute([$id]);
+	        $oldImage = $st->fetch();
+	    
+	        // Если новое изображение отличается от старого
+	        if (!$oldImage || $oldImage['image_path'] !== $imagePath) {
+	            // Удаляем старое изображение с диска
+	            if ($oldImage && $oldImage['image_path']) {
+	                $oldFilePath = dirname(__DIR__) . '/' . $oldImage['image_path'];
+	                if (file_exists($oldFilePath)) unlink($oldFilePath);
+	            }
+	        
+	            // Обновляем или вставляем новое
+	            if ($oldImage) {
+	                $db->prepare("UPDATE product_images SET image_path = ? WHERE product_id = ? AND is_main = 1")->execute([$imagePath, $id]);
+	            } else {
+	                $db->prepare("INSERT INTO product_images (product_id, image_path, is_main) VALUES (?,?,1)")->execute([$id, $imagePath]);
+	            }
+	        }
+	    }
             
             $msg = 'Товар обновлён';
         } else {

@@ -20,4 +20,4 @@ Disallow: /sakura_shop.sql
 Disallow: /*?sort=
 Disallow: /*?page=
 
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://k.filipp.su/sitemap.xml

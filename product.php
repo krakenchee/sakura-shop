@@ -45,18 +45,6 @@ $reviews = $reviews->fetchAll();
 
 $avgRating = $reviews ? array_sum(array_column($reviews, 'rating')) / count($reviews) : 0;
 
-// С этим товаром покупают
-$related = $db->prepare("
-    SELECT p.*, pi.image_path, c.name as cat_name
-    FROM products p
-    LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_main = 1
-    LEFT JOIN categories c ON c.id = p.category_id
-    WHERE p.category_id = ? AND p.id != ? AND p.stock_quantity > 0
-    ORDER BY RAND() LIMIT 4
-");
-$related->execute([$product['category_id'], $product['id']]);
-$related = $related->fetchAll();
-
 // Обработка отзыва
 $reviewError = $reviewSuccess = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
@@ -198,7 +186,7 @@ include 'header.php';
     </div>
   </div>
 
-  <!-- Отзывы (остается без изменений) -->
+  <!-- Отзывы -->
   <div class="reviews-section">
     <div class="reviews-header">
       <h2 style="font-family:var(--font-serif);color:var(--crimson-deep);font-size:1.4rem;">Отзывы покупателей</h2>
@@ -280,25 +268,6 @@ include 'header.php';
     </div>
     <?php endif; ?>
   </div>
-
-  <!-- С этим товаром покупают -->
-  <?php if ($related): ?>
-  <div class="related-products-wrapper">
-    <div class="container">
-      <div class="section-ornament">
-        <span>関連商品</span>
-      </div>
-      <h2 class="section-title">С этим товаром покупают</h2>
-      
-      <div class="related-products-grid">
-        <?php foreach ($related as $p): ?>
-          <?php include 'product_card.php'; ?>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
-
 </div>
 
 <?php include 'footer.php'; ?>

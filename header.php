@@ -149,7 +149,7 @@ $user = currentUser();
       <a href="<?= BASE_URL ?>index.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">Главная</a>
       <a href="<?= BASE_URL ?>catalog.php" class="nav-link <?= (strpos(basename($_SERVER['PHP_SELF']), 'catalog') !== false) ? 'active' : '' ?>">Каталог</a>   
       <a href="<?= BASE_URL ?>delivery.php" class="nav-link">Доставка и оплата</a>
-      <?php if ($user): ?>
+      <?php if ($user && !isAdmin()): ?>
         <a href="<?= BASE_URL ?>account.php" class="nav-link">Личный кабинет</a>
       <?php endif; ?>
     </div>
@@ -162,7 +162,7 @@ $user = currentUser();
         <a href="<?= BASE_URL ?>index.php" class="mobile-nav-link <?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">Главная</a>
         <a href="<?= BASE_URL ?>catalog.php" class="mobile-nav-link <?= (strpos(basename($_SERVER['PHP_SELF']), 'catalog') !== false) ? 'active' : '' ?>">Каталог</a>   
         <a href="<?= BASE_URL ?>delivery.php" class="mobile-nav-link">Доставка и оплата</a>
-        <?php if ($user): ?>
+        <?php if ($user && !isAdmin()): ?>
           <a href="<?= BASE_URL ?>account.php" class="mobile-nav-link">Личный кабинет</a>
         <?php endif; ?>
       </nav>

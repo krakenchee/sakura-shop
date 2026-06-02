@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$fullName || !$email || !$password) {
         $error = 'Заполните все обязательные поля';
+    } elseif (!preg_match('/^[a-zA-Zа-яА-ЯёЁ\s\-\.]+$/u', $fullName)) {
+        $error = 'Имя и фамилия могут содержать только буквы, пробелы, дефисы и точки';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Некорректный email';
     } elseif (strlen($password) < 6) {
@@ -47,11 +49,10 @@ $pageTitle = 'Регистрация — Sakura Shop';
 include 'header.php';
 ?>
 
-<div style="min-height:60vh;display:flex;align-items:center;padding:60px 0;">
+<div style="min-height:60vh;display:flex;align-items:center;padding:40px 0;">
   <div class="container" style="max-width:480px;margin:0 auto;">
 
     <div style="text-align:center;margin-bottom:32px;">
-      <div style="font-size:3rem;margin-bottom:12px;">🌸</div>
       <h1 style="font-family:var(--font-serif);font-size:1.8rem;color:var(--crimson-deep);margin-bottom:8px;">Регистрация</h1>
       <p style="color:var(--charcoal-light);font-size:0.9rem;">ようこそ — Добро пожаловать в Sakura Shop</p>
     </div>
@@ -70,7 +71,8 @@ include 'header.php';
           <label class="form-label">Имя и фамилия *</label>
           <input type="text" class="form-input" name="full_name"
                  value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>"
-                 required placeholder="Иванова Мария Петровна">
+                 required placeholder="Иванова Мария Петровна" 
+                 oninput="this.value = this.value.replace(/[0-9]/g, '')">
         </div>
 
         <div class="form-group">

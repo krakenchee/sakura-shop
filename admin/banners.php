@@ -141,27 +141,29 @@ include 'admin_header.php';
                     </div>
                     
                     <div class="admin-form-group">
-                        <label class="admin-form-label">Изображение *</label>
-                        <div class="image-uploader" data-type="banner">
-                            <div class="upload-area" onclick="document.getElementById('bannerImageInput').click()">
-                                <input type="file" id="bannerImageInput" accept="image/*" style="display:none">
-                                <div class="upload-placeholder" <?= ($editBanner && $editBanner['image_path']) ? 'style="display:none"' : '' ?>>
-                                    <span class="upload-icon">🖼️</span>
-                                    <p>Нажмите для загрузки изображения</p>
-                                    <small>JPG, PNG, WEBP до 5MB</small>
-                                </div>
-                                <div class="upload-preview" <?= ($editBanner && $editBanner['image_path']) ? '' : 'style="display:none"' ?>>
-                                    <img src="<?= ($editBanner && $editBanner['image_path']) ? BASE_URL . $editBanner['image_path'] : '' ?>" alt="Preview">
-                                    <button type="button" class="remove-image-btn">✕</button>
-                                </div>
-                            </div>
-                            <input type="hidden" name="image_path" id="imagePathInput" value="<?= htmlspecialchars($editBanner['image_path'] ?? '') ?>">
-                            <div class="upload-progress" style="display:none">
-                                <div class="progress-bar"></div>
-                                <span>Загрузка...</span>
-                            </div>
-                        </div>
-                    </div>
+			<label class="admin-form-label">
+			    <?= $editBanner ? 'Изменить изображение' : 'Изображение баннера *' ?>
+			</label>
+			<div class="image-uploader" data-type="banner">
+			    <div class="upload-area" onclick="document.getElementById('bannerImageInput').click()">
+			        <input type="file" id="bannerImageInput" accept="image/*" style="display:none">
+			        <div class="upload-placeholder" <?= ($editBanner && $editBanner['image_path']) ? 'style="display:none"' : '' ?>>
+			            <span class="upload-icon">📸</span>
+			            <p>Нажмите для загрузки изображения</p>
+			            <small>JPG, PNG, WEBP до 5MB</small>
+			        </div>
+			        <div class="upload-preview" <?= ($editBanner && $editBanner['image_path']) ? '' : 'style="display:none"' ?>>
+			            <img src="<?= ($editBanner && $editBanner['image_path']) ? BASE_URL . $editBanner['image_path'] : '' ?>" alt="Preview">
+			            <button type="button" class="remove-image-btn">✕</button>
+			        </div>
+			    </div>
+			    <input type="hidden" name="image_path" id="imagePathInput" value="<?= htmlspecialchars($editBanner['image_path'] ?? '') ?>">
+			    <div class="upload-progress" style="display:none">
+			        <div class="progress-bar"></div>
+			        <span>Загрузка...</span>
+			    </div>
+			</div>
+		    </div>
                     
                     <div class="admin-form-group">
                         <label class="admin-form-label">Ссылка</label>

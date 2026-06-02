@@ -127,17 +127,17 @@ include 'header.php';
             <textarea class="form-textarea" name="address" required rows="3"
                       placeholder="Москва, ул. Примерная, д. 1, кв. 1"><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="form-group">
-              <label class="form-label">Почтовый индекс</label>
-              <input type="text" class="form-input" name="postal_code" placeholder="123456" pattern="\d{6}" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Телефон *</label>
-              <input type="tel" class="form-input" name="phone"
-                     value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
-                     required placeholder="+7 (999) 000-00-00">
-            </div>
+          <div class="form-group">
+            <label class="form-label">Почтовый индекс</label>
+            <input type="text" class="form-input" name="postal_code" placeholder="123456" maxlength="6"
+           pattern="\d{6}"
+           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,6)" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Телефон *</label>
+            <input type="tel" class="form-input" name="phone"
+                   value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
+                   required placeholder="+7 (999) 000-00-00">
           </div>
         </div>
 
@@ -182,12 +182,6 @@ include 'header.php';
             </label>
             <?php endforeach; ?>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Комментарий к заказу</label>
-          <textarea class="form-textarea" name="comment" rows="2"
-                    placeholder="Дополнительная информация..."></textarea>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-full">

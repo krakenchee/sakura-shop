@@ -38,11 +38,10 @@ $pageTitle = 'Вход — Sakura Shop';
 include 'header.php';
 ?>
 
-<div style="min-height:60vh;display:flex;align-items:center;padding:60px 0;">
+<div style="min-height:60vh;display:flex;align-items:center;padding:40px 0;">
   <div class="container" style="max-width:440px;margin:0 auto;">
 
     <div style="text-align:center;margin-bottom:32px;">
-      <div style="font-size:3rem;margin-bottom:12px;">⛩</div>
       <h1 style="font-family:var(--font-serif);font-size:1.8rem;color:var(--crimson-deep);margin-bottom:8px;">Добро пожаловать</h1>
       <p style="color:var(--charcoal-light);font-size:0.9rem;">いらっしゃいませ</p>
     </div>
